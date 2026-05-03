@@ -6,7 +6,7 @@ import api from '../services/api';
 import { Header } from '../components/Header';
 
 export function RegisterPage() {
-  const [formData, setFormData] = useState({ username: '', email: '', password: '', role: 'client' });
+  const [formData, setFormData] = useState({ username: '', email: '', password: '', role: 'user' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
@@ -57,8 +57,8 @@ export function RegisterPage() {
               <Select
                 label="Роль"
                 data={[
-                  { value: 'client', label: 'Клиент (Арендатор)' },
-                  { value: 'owner', label: 'Владелец объекта' },
+                  { value: 'user', label: 'Пользователь' },
+                  { value: 'renter', label: 'Арендатор' },
                 ]}
                 value={formData.role}
                 onChange={(val) => setFormData({...formData, role: val})}

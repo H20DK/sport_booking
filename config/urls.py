@@ -29,7 +29,7 @@ from rest_framework_simplejwt.views import (
 # Импортируем ViewSet'ы
 from bookings.views import BookingViewSet
 from facilities.views import ReviewViewSet, SportsComplexViewSet, FacilityViewSet
-from users.views import RegisterView
+from users.views import MeView, RegisterView
 
 router = DefaultRouter()
 router.register(r'bookings', BookingViewSet, basename='booking')
@@ -42,6 +42,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
     path('api/register/', RegisterView.as_view(), name='register'),
+    path('api/me/', MeView.as_view(), name='me'),
     # JWT Endpoints
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

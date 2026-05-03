@@ -1,59 +1,93 @@
-import { Card, Image, Text, Group, Badge, Button, Stack } from '@mantine/core';
-import { IconMapPin, IconStar, IconClock } from '@tabler/icons-react';
+import { Carousel } from '@mantine/carousel';
+import { Badge, Box, Button, Card, Group, Image, Stack, Text } from '@mantine/core';
+import { IconStar } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 
+const API_BASE_URL = 'http://127.0.0.1:8000';
+
+const SPORT_TYPE_LABELS = {
+  football: 'Футбол',
+  tennis: 'Теннис',
+  gym: 'Зал',
+  pool: 'Бассейн',
+};
+
+function getImageUrl(imagePath) {
+  return imagePath.startsWith('http') ? imagePath : `${API_BASE_URL}${imagePath}`;
+}
+
 export function FacilityCard({ facility }) {
-  // Если нет фото, ставим заглушку
-  const imageUrl = facility.images && facility.images.length > 0 
-    ? `http://127.0.0.1:8000${facility.images[0].image}` 
-    : 'https://placehold.co/600x400?text=No+Image';
+  const imageUrls = facility.images?.length
+    ? facility.images.map((item) => getImageUrl(item.image))
+    : ['https://placehold.co/600x400?text=No+Image'];
+  const hasMultipleImages = imageUrls.length > 1;
+  const sportType = SPORT_TYPE_LABELS[facility.type] || 'Спорт';
+  const rating = Number(facility.rating || 0).toFixed(1);
+  const reviewsCount = facility.reviews_count || 0;
 
   return (
-    <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
+    <Card
+      shadow="sm"
+      padding="md"
+      radius="md"
+      withBorder
+      h="100%"
+      style={{ display: 'flex', flexDirection: 'column' }}
+    >
       <Card.Section>
-        <Image src={imageUrl} height={200} alt={facility.name} />
+        <Box pos="relative">
+          <Carousel
+            height={190}
+            withControls={hasMultipleImages}
+            withIndicators={hasMultipleImages}
+            loop={hasMultipleImages}
+            styles={{
+              control: { width: 28, height: 28 },
+              indicator: { width: 8, height: 8 },
+            }}
+          >
+            {imageUrls.map((imageUrl, index) => (
+              <Carousel.Slide key={`${imageUrl}-${index}`}>
+                <Image src={imageUrl} height={190} alt={facility.name} fit="cover" />
+              </Carousel.Slide>
+            ))}
+          </Carousel>
+
+          <Badge color="blue" variant="filled" radius="sm" pos="absolute" top={12} right={12}>
+            {sportType}
+          </Badge>
+        </Box>
       </Card.Section>
 
-      <Group justify="space-between" mt="md" mb="xs">
-        <Text fw={500} size="lg" lineClamp={2}>{facility.name}</Text>
-        <Badge color="blue" variant="light">
-          {facility.type === 'football' ? 'Футбол' : 
-           facility.type === 'tennis' ? 'Теннис' : 
-           facility.type === 'gym' ? 'Зал' : 'Бассейн'}
-        </Badge>
-      </Group>
-
-      <Text size="lg" fw={700} c="blue">
-          {facility.price_per_hour} ₽ / час
-      </Text>
-      
-      <Text size="sm" c="dimmed" lineClamp={2}>
-        {facility.complex_name}
-      </Text>
-      <Group gap="xs" mt="sm">
-        <IconMapPin size={14} />
-        <Text size="xs" c="dimmed">{facility.complex_address}</Text>
-      </Group>
-      
-      <Group justify="space-between" mt="auto" pt="md">
-        <Group gap="xs">
-          {/* Используем новый компонент или просто иконку */}
-          <IconStar size={16} color="#fcc419" fill="#fcc419" />
-          <Text size="sm" fw={500}>
-            {facility.complex_rating 
-              ? Number(facility.complex_rating).toFixed(1) 
-              : 'Нет оценок'}
-          </Text>
-        </Group>
-        
-        <Text size="lg" fw={700} c="blue">
-          {facility.price_per_hour} ₽ / час
+      <Stack gap={6} mt="md" style={{ flex: 1 }}>
+        <Text fw={700} size="lg" lh={1.25} lineClamp={2} ta="left">
+          {facility.name}
         </Text>
-      </Group>
 
-      <Button fullWidth mt="md" radius="md" component={Link} to={`/facility/${facility.id}`}>
-        Подробнее и бронь
-      </Button>
+        <Text size="sm" c="dimmed" lineClamp={1} ta="left">
+          {facility.complex_name}
+        </Text>
+
+        <Group justify="space-between" align="center" mt="sm">
+          <Text size="lg" fw={800} c="blue">
+            от {facility.price_per_hour} ₽
+          </Text>
+
+          <Group gap={5} wrap="nowrap">
+            <IconStar size={17} color="#fcc419" fill="#fcc419" />
+            <Text size="sm" fw={700}>
+              {rating}
+            </Text>
+            <Text size="sm" c="dimmed">
+              ({reviewsCount})
+            </Text>
+          </Group>
+        </Group>
+
+        <Button fullWidth mt="auto" radius="md" component={Link} to={`/facility/${facility.id}`}>
+          Подробнее и бронь
+        </Button>
+      </Stack>
     </Card>
   );
 }

@@ -8,6 +8,7 @@ import ReactDOM from 'react-dom/client'
 import { MantineProvider } from '@mantine/core'
 import { BrowserRouter } from 'react-router-dom'
 import '@mantine/core/styles.css'; // Импорт стилей Mantine
+import '@mantine/carousel/styles.css';
 import { DatesProvider } from '@mantine/dates'
 import '@mantine/dates/styles.css';
 import dayjs from 'dayjs';

@@ -6,6 +6,12 @@ from bookings.models import TimeSlot
 from .models import SportsComplex, Facility, Review
 from .serializers import SportsComplexSerializer, FacilitySerializer, ReviewSerializer
 
+class IsReviewOwnerOrReadOnly(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.client_id == request.user.id or request.user.is_administration
+
 class SportsComplexViewSet(viewsets.ModelViewSet):
     """
     API endpoint для просмотра и редактирования спортивных комплексов.
@@ -54,11 +60,18 @@ class FacilityViewSet(viewsets.ModelViewSet):
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
-    permission_classes = [permissions.IsAuthenticated] # Только авторизованные
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated(), IsReviewOwnerOrReadOnly()]
 
     def get_queryset(self):
         facility_id = self.request.query_params.get('facility')
+        mine = self.request.query_params.get('mine')
         queryset = Review.objects.select_related('facility', 'client')
+        if mine and self.request.user.is_authenticated:
+            queryset = queryset.filter(client=self.request.user)
         if facility_id:
             return queryset.filter(facility_id=facility_id)
         return queryset

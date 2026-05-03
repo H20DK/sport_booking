@@ -7,12 +7,16 @@ class FacilityImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image', 'is_main']
 
 class ReviewSerializer(serializers.ModelSerializer):
+    client_id = serializers.IntegerField(source='client.id', read_only=True)
     client_name = serializers.CharField(source='client.username', read_only=True)
     facility_name = serializers.CharField(source='facility.name', read_only=True)
 
     class Meta:
         model = Review
-        fields = ['id', 'facility', 'facility_name', 'client_name', 'rating', 'comment', 'created_at']
+        fields = [
+            'id', 'facility', 'facility_name', 'client_id', 'client_name',
+            'rating', 'title', 'comment', 'visit_date', 'would_recommend', 'created_at'
+        ]
         read_only_fields = ['client', 'created_at']
 
 class FacilitySerializer(serializers.ModelSerializer):

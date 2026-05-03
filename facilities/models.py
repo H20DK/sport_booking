@@ -44,11 +44,13 @@ class Review(models.Model):
     facility = models.ForeignKey(Facility, on_delete=models.CASCADE, related_name='reviews')
     client = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
     rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)]) # 1-5 звезд
+    title = models.CharField(max_length=120, blank=True)
     comment = models.TextField(blank=True)
+    visit_date = models.DateField(null=True, blank=True)
+    would_recommend = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('facility', 'client') # Один отзыв на одну площадку от клиента
         ordering = ['-created_at']
 
     def __str__(self):

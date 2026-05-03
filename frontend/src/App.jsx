@@ -5,6 +5,8 @@ import { FacilityDetailPage } from './pages/FacilityDetailPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { ProfileBookingsPage } from './pages/ProfileBookingsPage';
+import { ProfileReviewsPage } from './pages/ProfileReviewsPage';
 import { ReviewPage } from './pages/ReviewPage';
 
 // Защищенный маршрут (простая проверка токена)
@@ -25,6 +27,12 @@ function App() {
       {/* Защищенные роуты */}
       <Route path="/profile" element={
         <ProtectedRoute><ProfilePage /></ProtectedRoute>
+      } />
+      <Route path="/profile/bookings" element={
+        <ProtectedRoute><ProfileBookingsPage /></ProtectedRoute>
+      } />
+      <Route path="/profile/reviews" element={
+        <ProtectedRoute><ProfileReviewsPage /></ProtectedRoute>
       } />
 
       <Route path="/review/:id" element={

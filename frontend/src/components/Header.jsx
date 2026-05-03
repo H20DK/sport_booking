@@ -1,27 +1,30 @@
-import { Group, Button, Container, ActionIcon, Text } from '@mantine/core';
-import { IconMapPin, IconUser, IconLogin, IconLogout } from '@tabler/icons-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Button, Container, Group, Menu, Text, UnstyledButton } from '@mantine/core';
+import {
+  IconCalendarCheck,
+  IconChevronDown,
+  IconLogin,
+  IconLogout,
+  IconMapPin,
+  IconMessageStar,
+  IconUser,
+} from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
 
 export function Header() {
-  const _navigate = useNavigate();
-
-  // Проверяем токен напрямую при каждом рендере.
-  // Это быстро и гарантирует, что UI всегда соответствует реальному состоянию localStorage.
   const isLoggedIn = !!localStorage.getItem('access_token');
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user_role');
-    // Принудительно обновляем страницу или переходим на главную, чтобы сбросить все состояния
-    window.location.href = '/'; 
+    localStorage.removeItem('username');
+    window.location.href = '/';
   };
 
   return (
-    <header style={{ borderBottom: '1px solid #e9ecef', padding: '1rem 0' }}>
+    <header style={{ borderBottom: '1px solid #e9ecef', padding: '1rem 0', background: '#fff' }}>
       <Container size="xl">
         <Group justify="space-between">
-          {/* Логотип */}
           <Link to="/" style={{ textDecoration: 'none' }}>
             <Group gap="xs">
               <IconMapPin size={32} color="#339af0" />
@@ -29,44 +32,41 @@ export function Header() {
             </Group>
           </Link>
 
-          {/* Кнопки справа */}
           <Group gap="md">
             {isLoggedIn ? (
-              <>
-                <Button 
-                  variant="filled" 
-                  color="blue" 
-                  leftSection={<IconUser size={16} />} 
-                  component={Link} 
-                  to="/profile"
-                >
-                  Кабинет
-                </Button>
-                <Button 
-                  variant="outline" 
-                  color="red" 
-                  leftSection={<IconLogout size={16} />} 
-                  onClick={handleLogout}
-                >
-                  Выйти
-                </Button>
-              </>
+              <Menu trigger="hover" openDelay={120} closeDelay={180} position="bottom-end" shadow="md" width={220}>
+                <Menu.Target>
+                  <UnstyledButton>
+                    <Group gap={6}>
+                      <IconUser size={18} />
+                      <Text fw={600}>Профиль</Text>
+                      <IconChevronDown size={16} />
+                    </Group>
+                  </UnstyledButton>
+                </Menu.Target>
+
+                <Menu.Dropdown>
+                  <Menu.Item component={Link} to="/profile" leftSection={<IconUser size={16} />}>
+                    Профиль
+                  </Menu.Item>
+                  <Menu.Item component={Link} to="/profile/bookings" leftSection={<IconCalendarCheck size={16} />}>
+                    Бронирования
+                  </Menu.Item>
+                  <Menu.Item component={Link} to="/profile/reviews" leftSection={<IconMessageStar size={16} />}>
+                    Отзывы
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item color="red" leftSection={<IconLogout size={16} />} onClick={handleLogout}>
+                    Выйти
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
             ) : (
               <>
-                <Button 
-                  variant="outline" 
-                  leftSection={<IconUser size={16} />} 
-                  component={Link} 
-                  to="/login"
-                >
+                <Button variant="outline" leftSection={<IconUser size={16} />} component={Link} to="/login">
                   Войти
                 </Button>
-                <Button 
-                  color="blue" 
-                  leftSection={<IconLogin size={16} />} 
-                  component={Link} 
-                  to="/register"
-                >
+                <Button color="blue" leftSection={<IconLogin size={16} />} component={Link} to="/register">
                   Регистрация
                 </Button>
               </>
