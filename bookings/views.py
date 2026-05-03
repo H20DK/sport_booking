@@ -15,9 +15,9 @@ class BookingViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = Booking.objects.select_related('client', 'slot__facility__complex__owner')
 
-        if user.role == 'admin':
+        if user.is_administration:
             return queryset
-        if user.role == 'owner':
+        if user.is_renter:
             return queryset.filter(slot__facility__complex__owner=user)
         return queryset.filter(client=user)
 
@@ -54,10 +54,10 @@ class BookingViewSet(viewsets.ModelViewSet):
         booking = self.get_object()
         # Проверка прав: только владелец брони или админ
         can_manage_as_owner = (
-            request.user.role == 'owner'
+            request.user.is_renter
             and booking.slot.facility.complex.owner_id == request.user.id
         )
-        if booking.client != request.user and request.user.role != 'admin' and not can_manage_as_owner:
+        if booking.client != request.user and not request.user.is_administration and not can_manage_as_owner:
             return Response({"detail": "Нет прав"}, status=403)
         
         booking.cancel()
