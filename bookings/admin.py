@@ -3,7 +3,7 @@ from .models import TimeSlot, Booking
 
 @admin.register(TimeSlot)
 class TimeSlotAdmin(admin.ModelAdmin):
-    list_display = ('facility', 'start_time', 'end_time', 'is_booked')
+    list_display = ('facility', 'start_time', 'end_time', 'price', 'is_booked')
     list_filter = ('is_booked', 'facility')
 
 @admin.register(Booking)

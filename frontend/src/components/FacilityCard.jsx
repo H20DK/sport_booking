@@ -5,13 +5,6 @@ import { Link } from 'react-router-dom';
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
 
-const SPORT_TYPE_LABELS = {
-  football: 'Футбол',
-  tennis: 'Теннис',
-  gym: 'Зал',
-  pool: 'Бассейн',
-};
-
 function getImageUrl(imagePath) {
   return imagePath.startsWith('http') ? imagePath : `${API_BASE_URL}${imagePath}`;
 }
@@ -21,9 +14,10 @@ export function FacilityCard({ facility }) {
     ? facility.images.map((item) => getImageUrl(item.image))
     : ['https://placehold.co/600x400?text=No+Image'];
   const hasMultipleImages = imageUrls.length > 1;
-  const sportType = SPORT_TYPE_LABELS[facility.type] || 'Спорт';
+  const facilityKind = facility.kind_name || 'Площадка';
   const rating = Number(facility.rating || 0).toFixed(1);
   const reviewsCount = facility.reviews_count || 0;
+  const minPrice = facility.min_price ?? facility.price_per_hour;
 
   return (
     <Card
@@ -54,7 +48,7 @@ export function FacilityCard({ facility }) {
           </Carousel>
 
           <Badge color="blue" variant="filled" radius="sm" pos="absolute" top={12} right={12}>
-            {sportType}
+            {facilityKind}
           </Badge>
         </Box>
       </Card.Section>
@@ -68,9 +62,15 @@ export function FacilityCard({ facility }) {
           {facility.complex_name}
         </Text>
 
+        {facility.description && (
+          <Text size="sm" lineClamp={2} ta="left">
+            {facility.description}
+          </Text>
+        )}
+
         <Group justify="space-between" align="center" mt="sm">
           <Text size="lg" fw={800} c="blue">
-            от {facility.price_per_hour} ₽
+            от {minPrice} ₽
           </Text>
 
           <Group gap={5} wrap="nowrap">

@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User
+from .models import ActionLog, User
+
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
@@ -9,3 +10,11 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = BaseUserAdmin.fieldsets + (
         ('Дополнительная информация', {'fields': ('role', 'phone')}),
     )
+
+
+@admin.register(ActionLog)
+class ActionLogAdmin(admin.ModelAdmin):
+    list_display = ('created_at', 'actor', 'action', 'entity_type', 'entity_id', 'facility')
+    list_filter = ('action', 'entity_type', 'created_at')
+    search_fields = ('actor__username', 'description', 'entity_type')
+    readonly_fields = ('created_at',)

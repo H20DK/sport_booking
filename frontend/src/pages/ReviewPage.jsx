@@ -75,6 +75,18 @@ export function ReviewPage() {
     }
   };
 
+  const handleTitleChange = (event) => {
+    setTitle(event.currentTarget.value);
+  };
+
+  const handleCommentChange = (event) => {
+    setComment(event.currentTarget.value);
+  };
+
+  const handleRecommendChange = (event) => {
+    setWouldRecommend(event.currentTarget.checked);
+  };
+
   if (pageLoading) return <Center h="100vh"><Loader /></Center>;
 
   return (
@@ -112,7 +124,7 @@ export function ReviewPage() {
                 label="Короткий заголовок"
                 placeholder="Например: Отличная площадка для вечерней игры"
                 value={title}
-                onChange={(event) => setTitle(event.currentTarget.value)}
+                onChange={handleTitleChange}
                 maxLength={120}
               />
 
@@ -130,12 +142,12 @@ export function ReviewPage() {
                 placeholder="Расскажите про покрытие, раздевалки, персонал, удобство бронирования..."
                 minRows={5}
                 value={comment}
-                onChange={(event) => setComment(event.currentTarget.value)}
+                onChange={handleCommentChange}
               />
 
               <Checkbox
                 checked={wouldRecommend}
-                onChange={(event) => setWouldRecommend(event.currentTarget.checked)}
+                onChange={handleRecommendChange}
                 label="Я бы рекомендовал эту площадку другим"
               />
 

@@ -27,22 +27,27 @@ from rest_framework_simplejwt.views import (
 )
 
 # Импортируем ViewSet'ы
-from bookings.views import BookingViewSet
-from facilities.views import ReviewViewSet, SportsComplexViewSet, FacilityViewSet
-from users.views import MeView, RegisterView
+from bookings.views import BookingViewSet, TimeSlotViewSet
+from facilities.views import FacilityKindViewSet, ReviewViewSet, SportsComplexViewSet, FacilityViewSet, SportTypeViewSet
+from users.views import ActionLogViewSet, MeView, RegisterView, UserViewSet, admin_data_view
 
 router = DefaultRouter()
 router.register(r'bookings', BookingViewSet, basename='booking')
+router.register(r'timeslots', TimeSlotViewSet, basename='timeslot')
 router.register(r'complexes', SportsComplexViewSet, basename='complex')
 router.register(r'facilities', FacilityViewSet, basename='facility')
+router.register(r'facility-kinds', FacilityKindViewSet, basename='facility-kind')
+router.register(r'sport-types', SportTypeViewSet, basename='sport-type')
 router.register(r'reviews', ReviewViewSet, basename='review')
-# router.register(r'users', UserViewSet, basename='user')
+router.register(r'users', UserViewSet, basename='user')
+router.register(r'action-logs', ActionLogViewSet, basename='action-log')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
     path('api/register/', RegisterView.as_view(), name='register'),
     path('api/me/', MeView.as_view(), name='me'),
+    path('api/admin-data/', admin_data_view, name='admin-data'),
     # JWT Endpoints
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

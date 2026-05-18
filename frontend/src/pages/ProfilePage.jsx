@@ -3,6 +3,13 @@ import { Badge, Button, Center, Container, Group, Loader, Notification, Paper, S
 import { Header } from '../components/Header';
 import api from '../services/api';
 
+const ROLE_LABELS = {
+  user: 'Пользователь',
+  renter: 'Собственник',
+  administration: 'Администрация',
+  system_admin: 'Системный администратор',
+};
+
 export function ProfilePage() {
   const [user, setUser] = useState(null);
   const [form, setForm] = useState({ first_name: '', last_name: '', email: '', phone: '' });
@@ -37,6 +44,11 @@ export function ProfilePage() {
     }
   };
 
+  const updateField = (field) => (event) => {
+    const { value } = event.currentTarget;
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
   if (loading) return <Center h="100vh"><Loader /></Center>;
 
   return (
@@ -45,7 +57,7 @@ export function ProfilePage() {
       <Container size={720} py="xl">
         <Group justify="space-between" mb="lg">
           <Title order={2}>Профиль</Title>
-          <Badge size="lg" variant="light">{user?.role}</Badge>
+          <Badge size="lg" variant="light">{ROLE_LABELS[user?.role] || user?.role}</Badge>
         </Group>
 
         {notice && (
@@ -60,23 +72,23 @@ export function ProfilePage() {
             <TextInput
               label="Имя"
               value={form.first_name}
-              onChange={(event) => setForm((prev) => ({ ...prev, first_name: event.currentTarget.value }))}
+              onChange={updateField('first_name')}
             />
             <TextInput
               label="Фамилия"
               value={form.last_name}
-              onChange={(event) => setForm((prev) => ({ ...prev, last_name: event.currentTarget.value }))}
+              onChange={updateField('last_name')}
             />
             <TextInput
               label="Email"
               type="email"
               value={form.email}
-              onChange={(event) => setForm((prev) => ({ ...prev, email: event.currentTarget.value }))}
+              onChange={updateField('email')}
             />
             <TextInput
               label="Телефон"
               value={form.phone}
-              onChange={(event) => setForm((prev) => ({ ...prev, phone: event.currentTarget.value }))}
+              onChange={updateField('phone')}
             />
             <Button loading={saving} onClick={handleSave}>Сохранить</Button>
           </Stack>

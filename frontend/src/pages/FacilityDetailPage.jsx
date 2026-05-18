@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Carousel } from '@mantine/carousel';
 import {
@@ -22,7 +22,7 @@ import {
   Title,
   Tooltip,
 } from '@mantine/core';
-import { Calendar, DateInput } from '@mantine/dates';
+import { DateInput, DatePicker } from '@mantine/dates';
 import {
   IconArrowLeft,
   IconCheck,
@@ -33,17 +33,12 @@ import {
   IconX,
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
+import { FacilitiesMap } from '../components/FacilitiesMap';
 import { Header } from '../components/Header';
 import api from '../services/api';
+import { getAccessToken } from '../services/authStorage';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-
-const FACILITY_TYPE_LABELS = {
-  football: 'Футбол',
-  tennis: 'Теннис',
-  gym: 'Спортзал',
-  pool: 'Бассейн',
-};
 
 function getImageUrl(imagePath) {
   return imagePath.startsWith('http') ? imagePath : `${API_BASE_URL}${imagePath}`;
@@ -52,15 +47,18 @@ function getImageUrl(imagePath) {
 export function FacilityDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const reviewsRef = useRef(null);
+  const mapRef = useRef(null);
 
   const [facility, setFacility] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [slots, setSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [bookingSeats, setBookingSeats] = useState(1);
   const [notification, setNotification] = useState(null);
   const [editingReviewId, setEditingReviewId] = useState(null);
   const [savingReview, setSavingReview] = useState(false);
@@ -73,7 +71,7 @@ export function FacilityDetailPage() {
   });
 
   const fetchPageData = useCallback(async () => {
-    const token = localStorage.getItem('access_token');
+    const token = getAccessToken();
     const [facilityResponse, reviewsResponse, userResponse] = await Promise.all([
       api.get(`/facilities/${id}/`),
       api.get('/reviews/', { params: { facility: id } }),
@@ -84,21 +82,6 @@ export function FacilityDetailPage() {
     setReviews(reviewsResponse.data);
     setCurrentUser(userResponse?.data || null);
   }, [id]);
-
-  const generateMockSlots = useCallback((date) => {
-    const times = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
-
-    return times.map((time, index) => {
-      const start = dayjs(`${date} ${time}`, 'YYYY-MM-DD HH:mm');
-      return {
-        id: `mock-${index}`,
-        start_time: start.toISOString(),
-        end_time: start.add(1, 'hour').toISOString(),
-        is_booked: Math.random() < 0.3,
-        price: facility?.price_per_hour || 1000,
-      };
-    });
-  }, [facility]);
 
   useEffect(() => {
     fetchPageData()
@@ -114,42 +97,94 @@ export function FacilityDetailPage() {
 
     const fetchSlots = async () => {
       setLoadingSlots(true);
-      const dateStr = dayjs(selectedDate).format('YYYY-MM-DD');
+      const dateStr = selectedDate;
 
       try {
         const response = await api.get(`/facilities/${id}/slots/`, { params: { date: dateStr } });
-        setSlots(response.data?.length ? response.data : generateMockSlots(dateStr));
+        setSlots(response.data || []);
       } catch (error) {
-        console.warn('API не вернул слоты, используем тестовые:', error);
-        setSlots(generateMockSlots(dateStr));
+        console.warn('Не удалось загрузить слоты:', error);
+        setSlots([]);
       } finally {
         setLoadingSlots(false);
         setSelectedSlot(null);
+        setBookingSeats(1);
       }
     };
 
     fetchSlots();
-  }, [selectedDate, facility, id, generateMockSlots]);
+  }, [selectedDate, facility, id]);
 
   const handleBooking = async () => {
     if (!selectedSlot) return;
 
-    if (!localStorage.getItem('access_token')) {
+    if (!getAccessToken()) {
       setNotification({ type: 'error', message: 'Войдите в систему, чтобы забронировать время.' });
       return;
     }
 
     try {
-      await api.post('/bookings/', { slot_id: selectedSlot.id });
+      const response = await api.post('/bookings/', { slot_id: selectedSlot.id, seats: bookingSeats });
       setNotification({ type: 'success', message: 'Бронирование успешно создано.' });
       setSlots((prev) => prev.map((slot) => (
-        slot.id === selectedSlot.id ? { ...slot, is_booked: true } : slot
+        slot.id === selectedSlot.id
+          ? {
+              ...slot,
+              booked_count: (slot.booked_count || 0) + bookingSeats,
+              available_spots: Math.max((slot.available_spots ?? 1) - bookingSeats, 0),
+              is_booked: Math.max((slot.available_spots ?? 1) - bookingSeats, 0) <= 0,
+              active_booking_id: response.data.id,
+              active_booking_seats: bookingSeats,
+            }
+          : slot
       )));
-      setSelectedSlot(null);
+      setSelectedSlot((prev) => (
+        prev
+          ? {
+              ...prev,
+              booked_count: (prev.booked_count || 0) + bookingSeats,
+              available_spots: Math.max((prev.available_spots ?? 1) - bookingSeats, 0),
+              is_booked: Math.max((prev.available_spots ?? 1) - bookingSeats, 0) <= 0,
+              active_booking_id: response.data.id,
+              active_booking_seats: bookingSeats,
+            }
+          : prev
+      ));
     } catch (error) {
       const errorMsg = error.response?.data?.detail
         || error.response?.data?.error
         || 'Не удалось создать бронирование. Попробуйте другой слот.';
+      setNotification({ type: 'error', message: errorMsg });
+    }
+  };
+
+  const handleCancelSelectedBooking = async () => {
+    if (!selectedSlot?.active_booking_id) return;
+
+    if (!getAccessToken()) {
+      setNotification({ type: 'error', message: 'Войдите в систему, чтобы отменить бронь.' });
+      return;
+    }
+
+    try {
+      await api.post(`/bookings/${selectedSlot.active_booking_id}/cancel/`);
+      setNotification({ type: 'success', message: 'Бронь отменена.' });
+      setSlots((prev) => prev.map((slot) => (
+        slot.id === selectedSlot.id
+          ? {
+              ...slot,
+              booked_count: Math.max((slot.booked_count || 1) - (selectedSlot.active_booking_seats || 1), 0),
+              available_spots: (slot.available_spots ?? 0) + (selectedSlot.active_booking_seats || 1),
+              is_booked: false,
+              active_booking_id: null,
+              active_booking_seats: 0,
+            }
+          : slot
+      )));
+      setSelectedSlot(null);
+      setBookingSeats(1);
+    } catch (error) {
+      const errorMsg = error.response?.data?.detail || 'Не удалось отменить бронь.';
       setNotification({ type: 'error', message: errorMsg });
     }
   };
@@ -206,6 +241,24 @@ export function FacilityDetailPage() {
     }
   };
 
+  const updateEditField = (field) => (event) => {
+    const { value } = event.currentTarget;
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateEditCheckbox = (field) => (event) => {
+    const { checked } = event.currentTarget;
+    setEditForm((prev) => ({ ...prev, [field]: checked }));
+  };
+
+  const scrollToReviews = () => {
+    reviewsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const scrollToMap = () => {
+    mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   if (loading) return <Center h="100vh"><Loader size="xl" variant="dots" /></Center>;
 
   if (!facility) {
@@ -223,7 +276,12 @@ export function FacilityDetailPage() {
     ? facility.images.map((item) => getImageUrl(item.image))
     : ['https://images.unsplash.com/photo-1541252260730-0412e8e2108e?q=80&w=1200&auto=format&fit=crop'];
   const hasMultipleImages = imageUrls.length > 1;
-  const slotPrice = selectedSlot?.price || facility.price_per_hour;
+  const minPrice = facility.min_price ?? facility.price_per_hour;
+  const slotPrice = selectedSlot?.price ?? facility.price_per_hour;
+  const selectedSlotIsFull = Boolean(selectedSlot?.is_booked);
+  const selectedSlotHasBooking = Boolean(selectedSlot?.active_booking_id);
+  const maxBookingSeats = selectedSlot ? Math.max(selectedSlot.available_spots ?? 1, 1) : 1;
+  const bookingTotalPrice = Number(slotPrice || 0) * bookingSeats;
 
   return (
     <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
@@ -279,11 +337,24 @@ export function FacilityDetailPage() {
                 <Group justify="space-between" align="flex-start">
                   <Stack gap={6}>
                     <Badge size="lg" variant="light" color="blue">
-                      {FACILITY_TYPE_LABELS[facility.type] || 'Спортплощадка'}
+                      {facility.type_name || facility.type || 'Спорт'}
                     </Badge>
-                    <Text c="dimmed" size="sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <IconMapPin size={16} /> {facility.complex_address || 'Адрес не указан'}
-                    </Text>
+                    {facility.kind_name && (
+                      <Badge size="lg" variant="light" color="cyan">
+                        {facility.kind_name}
+                      </Badge>
+                    )}
+                    <Button
+                      variant="subtle"
+                      color="gray"
+                      size="compact-sm"
+                      px={0}
+                      leftSection={<IconMapPin size={16} />}
+                      onClick={scrollToMap}
+                      justify="flex-start"
+                    >
+                      {facility.complex_address || 'Адрес не указан'}
+                    </Button>
                   </Stack>
 
                   <Stack gap={4} align="flex-end">
@@ -291,20 +362,22 @@ export function FacilityDetailPage() {
                       <IconStar size={22} color="#fcc419" fill="#fcc419" />
                       <Text fw={800} size="xl">{Number(facility.rating || 0).toFixed(1)}</Text>
                     </Group>
-                    <Text size="sm" c="dimmed">{facility.reviews_count || 0} отзывов</Text>
+                    <Button variant="subtle" size="compact-sm" px={0} onClick={scrollToReviews}>
+                      {facility.reviews_count || 0} отзывов
+                    </Button>
                   </Stack>
                 </Group>
 
                 <Divider my="md" label="Описание" labelPosition="center" />
 
                 <Text size="sm" style={{ lineHeight: 1.6 }}>
-                  {facility.description || 'Просторная спортивная площадка для тренировок, игр и активного отдыха.'}
+                  {facility.description || 'Описание объекта пока не заполнено.'}
                 </Text>
 
                 <Group mt="xl" grow>
                   <div style={{ textAlign: 'center', padding: 12, backgroundColor: '#f1f3f5', borderRadius: 8 }}>
                     <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Цена</Text>
-                    <Text fw={800} size="xl" c="blue">от {facility.price_per_hour} ₽/час</Text>
+                    <Text fw={800} size="xl" c="blue">от {minPrice} ₽/час</Text>
                   </div>
                   <div style={{ textAlign: 'center', padding: 12, backgroundColor: '#f1f3f5', borderRadius: 8 }}>
                     <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Комплекс</Text>
@@ -313,7 +386,15 @@ export function FacilityDetailPage() {
                 </Group>
               </Card>
 
-              <Card shadow="sm" padding="lg" radius="md" withBorder>
+              <div ref={mapRef}>
+                <FacilitiesMap
+                  facilities={[facility]}
+                  title="Объект на карте"
+                  selectedFacilityId={facility.id}
+                />
+              </div>
+
+              <Card ref={reviewsRef} shadow="sm" padding="lg" radius="md" withBorder>
                 <Group justify="space-between" mb="md" align="center">
                   <Title order={3}>Отзывы</Title>
                   <Button component={Link} to={`/review/${facility.id}`} variant="light">
@@ -345,7 +426,7 @@ export function FacilityDetailPage() {
                               <TextInput
                                 label="Заголовок"
                                 value={editForm.title}
-                                onChange={(event) => setEditForm((prev) => ({ ...prev, title: event.currentTarget.value }))}
+                                onChange={updateEditField('title')}
                                 maxLength={120}
                               />
 
@@ -361,15 +442,12 @@ export function FacilityDetailPage() {
                                 label="Комментарий"
                                 minRows={4}
                                 value={editForm.comment}
-                                onChange={(event) => setEditForm((prev) => ({ ...prev, comment: event.currentTarget.value }))}
+                                onChange={updateEditField('comment')}
                               />
 
                               <Checkbox
                                 checked={editForm.wouldRecommend}
-                                onChange={(event) => setEditForm((prev) => ({
-                                  ...prev,
-                                  wouldRecommend: event.currentTarget.checked,
-                                }))}
+                                onChange={updateEditCheckbox('wouldRecommend')}
                                 label="Я бы рекомендовал эту площадку другим"
                               />
 
@@ -420,6 +498,18 @@ export function FacilityDetailPage() {
                                   <Text size="sm" c="teal" fw={600}>Рекомендует</Text>
                                 </Group>
                               )}
+
+                              {review.owner_response && (
+                                <Card mt="sm" radius="md" padding="sm" style={{ backgroundColor: '#f8f9fa' }}>
+                                  <Text size="sm" fw={700}>Ответ собственника</Text>
+                                  <Text size="sm" mt={4}>{review.owner_response}</Text>
+                                  {review.owner_response_updated_at && (
+                                    <Text size="xs" c="dimmed" mt={4}>
+                                      Обновлено {dayjs(review.owner_response_updated_at).format('DD.MM.YYYY HH:mm')}
+                                    </Text>
+                                  )}
+                                </Card>
+                              )}
                             </>
                           )}
                         </Card>
@@ -435,13 +525,12 @@ export function FacilityDetailPage() {
             <Card shadow="md" padding="lg" radius="md" withBorder style={{ position: 'sticky', top: 20 }}>
               <Title order={4} mb="md">Бронирование</Title>
 
-              <Calendar
+              <DatePicker
                 value={selectedDate}
-                onChange={setSelectedDate}
-                minDate={new Date()}
+                onChange={(value) => setSelectedDate(value || dayjs().format('YYYY-MM-DD'))}
+                minDate={dayjs().format('YYYY-MM-DD')}
                 fullWidth
                 mb="md"
-                locale="ru"
               />
 
               <Divider my="md" />
@@ -456,21 +545,37 @@ export function FacilityDetailPage() {
                 <Grid gutter="xs" style={{ maxHeight: 250, overflowY: 'auto', paddingRight: 5 }}>
                   {slots.map((slot) => {
                     const isSelected = selectedSlot?.id === slot.id;
-                    const price = slot.price || facility.price_per_hour;
+                    const price = slot.price ?? facility.price_per_hour;
 
                     return (
                       <Grid.Col span={4} key={slot.id}>
-                        <Tooltip label={slot.is_booked ? 'Уже занято' : `${price} ₽`}>
+                        <Tooltip
+                          label={[
+                            slot.active_booking_id
+                              ? 'Нажмите, чтобы отменить свою бронь'
+                              : slot.is_booked
+                                ? 'Свободных мест нет'
+                                : `${price} ₽ · свободно ${slot.available_spots ?? 1}`,
+                            slot.title,
+                            slot.trainer_name ? `Тренер: ${slot.trainer_name}` : '',
+                          ].filter(Boolean).join(' · ')}
+                        >
                           <Button
                             fullWidth
                             variant={isSelected ? 'filled' : 'outline'}
-                            color={slot.is_booked ? 'gray' : isSelected ? 'blue' : 'green'}
-                            disabled={slot.is_booked}
-                            onClick={() => setSelectedSlot({ ...slot, price })}
+                            color={slot.is_booked ? 'red' : isSelected ? 'blue' : 'green'}
+                            onClick={() => {
+                              setSelectedSlot({ ...slot, price });
+                              setBookingSeats(1);
+                            }}
                             styles={{ label: { fontSize: 12 } }}
                             px={0}
                           >
-                            {dayjs(slot.start_time).format('HH:mm')}
+                            <Stack gap={0} align="center">
+                              <Text size="xs" fw={700}>{dayjs(slot.start_time).format('HH:mm')}</Text>
+                              {slot.title && <Text size="10px" lineClamp={1}>{slot.title}</Text>}
+                              <Text size="10px">{slot.available_spots ?? 1}/{slot.capacity || 1}</Text>
+                            </Stack>
                           </Button>
                         </Tooltip>
                       </Grid.Col>
@@ -484,19 +589,58 @@ export function FacilityDetailPage() {
                 </Grid>
               )}
 
+              {selectedSlot && !selectedSlotHasBooking && !selectedSlotIsFull && (
+                <Card withBorder radius="md" p="sm" mt="md" style={{ backgroundColor: '#f8f9fa' }}>
+                  <Group justify="space-between" align="center">
+                    <Stack gap={2}>
+                      <Text size="sm" fw={700}>Количество мест</Text>
+                      <Text size="xs" c="dimmed">Свободно: {selectedSlot.available_spots ?? 1}</Text>
+                    </Stack>
+                    <Group gap="xs">
+                      <ActionIcon
+                        variant="light"
+                        color="blue"
+                        disabled={bookingSeats <= 1}
+                        onClick={() => setBookingSeats((value) => Math.max(value - 1, 1))}
+                        aria-label="Уменьшить количество мест"
+                      >
+                        -
+                      </ActionIcon>
+                      <Text fw={800} w={28} ta="center">{bookingSeats}</Text>
+                      <ActionIcon
+                        variant="light"
+                        color="blue"
+                        disabled={bookingSeats >= maxBookingSeats}
+                        onClick={() => setBookingSeats((value) => Math.min(value + 1, maxBookingSeats))}
+                        aria-label="Увеличить количество мест"
+                      >
+                        +
+                      </ActionIcon>
+                    </Group>
+                  </Group>
+                  <Text mt="xs" size="sm" c="blue" fw={700}>
+                    Итого: {bookingTotalPrice} ₽
+                  </Text>
+                </Card>
+              )}
+
               <Button
                 fullWidth
                 mt="xl"
                 size="md"
-                disabled={!selectedSlot}
-                onClick={handleBooking}
+                disabled={!selectedSlot || (selectedSlotIsFull && !selectedSlotHasBooking)}
+                color={selectedSlotHasBooking ? 'red' : 'blue'}
+                onClick={selectedSlotHasBooking ? handleCancelSelectedBooking : handleBooking}
               >
-                {selectedSlot ? `Забронировать за ${slotPrice} ₽` : 'Выберите время'}
+                {selectedSlot
+                  ? selectedSlotHasBooking
+                    ? 'Разбронировать слот'
+                    : selectedSlotIsFull
+                      ? 'Свободных мест нет'
+                      : `Забронировать за ${bookingTotalPrice} ₽`
+                  : 'Выберите время'}
               </Button>
 
-              <Text size="xs" c="dimmed" ta="center" mt="sm">
-                Отмена бронирования возможна в личном кабинете
-              </Text>
             </Card>
           </Grid.Col>
         </Grid>

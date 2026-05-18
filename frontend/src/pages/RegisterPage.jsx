@@ -58,7 +58,7 @@ export function RegisterPage() {
                 label="Роль"
                 data={[
                   { value: 'user', label: 'Пользователь' },
-                  { value: 'renter', label: 'Арендатор' },
+                  { value: 'renter', label: 'Собственник' },
                 ]}
                 value={formData.role}
                 onChange={(val) => setFormData({...formData, role: val})}

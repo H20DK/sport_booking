@@ -11,18 +11,38 @@ class SportsComplex(models.Model):
     def __str__(self):
         return self.name
 
+class FacilityKind(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=60, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+class SportType(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=60, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
 class Facility(models.Model):
-    FACILITY_TYPES = (
-        ('football', 'Футбольное поле'),
-        ('tennis', 'Теннисный корт'),
-        ('gym', 'Спортзал'),
-        ('pool', 'Бассейн'),
-    )
     complex = models.ForeignKey(SportsComplex, on_delete=models.CASCADE, related_name='facilities')
+    kind = models.ForeignKey(FacilityKind, on_delete=models.SET_NULL, null=True, blank=True, related_name='facilities')
     name = models.CharField(max_length=100)
-    type = models.CharField(max_length=20, choices=FACILITY_TYPES)
+    description = models.TextField(blank=True)
+    type = models.CharField(max_length=60)
     price_per_hour = models.DecimalField(max_digits=10, decimal_places=2)
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
     def __str__(self):
         return f"{self.complex.name} - {self.name}"
@@ -48,6 +68,8 @@ class Review(models.Model):
     comment = models.TextField(blank=True)
     visit_date = models.DateField(null=True, blank=True)
     would_recommend = models.BooleanField(default=True)
+    owner_response = models.TextField(blank=True)
+    owner_response_updated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

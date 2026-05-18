@@ -39,6 +39,7 @@ export function ProfileBookingsPage() {
                 <Table.Th>Объект</Table.Th>
                 <Table.Th>Дата и время</Table.Th>
                 <Table.Th>Статус</Table.Th>
+                <Table.Th>Мест</Table.Th>
                 <Table.Th>Цена</Table.Th>
                 <Table.Th>Действия</Table.Th>
               </Table.Tr>
@@ -53,6 +54,7 @@ export function ProfileBookingsPage() {
                       {booking.status}
                     </Badge>
                   </Table.Td>
+                  <Table.Td>{booking.seats || 1}</Table.Td>
                   <Table.Td>{booking.total_price} ₽</Table.Td>
                   <Table.Td>
                     {booking.status !== 'cancelled' && (

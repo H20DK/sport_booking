@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Container, Paper, Title, TextInput, Button, Text, Notification, Stack } from '@mantine/core';
 import { IconLock, IconMail } from '@tabler/icons-react';
 import api from '../services/api';
+import { setAuthTokens } from '../services/authStorage';
 import { Header } from '../components/Header';
 
 export function LoginPage() {
@@ -26,8 +27,10 @@ export function LoginPage() {
       // Давайте исправим запрос, чтобы отправлять именно то, что ввели в поле username (если это email, то нужно изменить бэкенд или ввод).
       // Для курса проще: считаем, что пользователь вводит 'username' (логин).
       
-      localStorage.setItem('access_token', response.data.access);
-      localStorage.setItem('refresh_token', response.data.refresh);
+      setAuthTokens({
+        access: response.data.access,
+        refresh: response.data.refresh,
+      });
       
       navigate('/profile'); // Переход в личный кабинет
     } catch {
