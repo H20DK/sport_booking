@@ -84,10 +84,10 @@ export function Header() {
                     </>
                   ) : (
                     <>
-                      <Menu.Item component={Link} to="/profile/bookings" leftSection={<IconCalendarCheck size={16} />}>
+                      <Menu.Item component={Link} to="/profile?tab=bookings" leftSection={<IconCalendarCheck size={16} />}>
                         Бронирования
                       </Menu.Item>
-                      <Menu.Item component={Link} to="/profile/reviews" leftSection={<IconMessageStar size={16} />}>
+                      <Menu.Item component={Link} to="/profile?tab=reviews" leftSection={<IconMessageStar size={16} />}>
                         Отзывы
                       </Menu.Item>
                     </>

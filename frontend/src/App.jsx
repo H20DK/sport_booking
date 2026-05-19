@@ -4,9 +4,7 @@ import { HomePage } from './pages/HomePage';
 import { FacilityDetailPage } from './pages/FacilityDetailPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { ProfileBookingsPage } from './pages/ProfileBookingsPage';
-import { ProfileReviewsPage } from './pages/ProfileReviewsPage';
+import { UserDashboardPage } from './pages/UserDashboardPage';
 import { RenterDashboardPage } from './pages/RenterDashboardPage';
 import { ReviewPage } from './pages/ReviewPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
@@ -29,13 +27,13 @@ function App() {
       
       {/* Защищенные роуты */}
       <Route path="/profile" element={
-        <ProtectedRoute><ProfilePage /></ProtectedRoute>
+        <ProtectedRoute><UserDashboardPage /></ProtectedRoute>
       } />
       <Route path="/profile/bookings" element={
-        <ProtectedRoute><ProfileBookingsPage /></ProtectedRoute>
+        <ProtectedRoute><UserDashboardPage /></ProtectedRoute>
       } />
       <Route path="/profile/reviews" element={
-        <ProtectedRoute><ProfileReviewsPage /></ProtectedRoute>
+        <ProtectedRoute><UserDashboardPage /></ProtectedRoute>
       } />
       <Route path="/renter" element={
         <ProtectedRoute><RenterDashboardPage /></ProtectedRoute>
