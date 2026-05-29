@@ -3,7 +3,7 @@ import { Badge, Box, Button, Card, Group, Image, Stack, Text } from '@mantine/co
 import { IconStar } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 function getImageUrl(imagePath) {
   return imagePath.startsWith('http') ? imagePath : `${API_BASE_URL}${imagePath}`;
